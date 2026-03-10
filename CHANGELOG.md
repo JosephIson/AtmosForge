@@ -31,6 +31,8 @@ All notable changes to AtmosForge will be documented here.
 - `AtmoConfig`: constants for volumetric cloud geometry and all tornado lifecycle parameters
 
 ### Fixed
+- Vanilla clouds rendered on top of and hid AtmosForge clouds — `AFTER_SKY` fires before `LevelRenderer.renderClouds()` so vanilla always drew last; now `CloudStatus.OFF` is set each frame so vanilla cloud rendering is a no-op and AtmosForge owns the cloud system entirely
+- Removed conflicting `RenderSystem.setShader(getPositionTexColorShader)` call before the `entityTranslucent` buffer — the `RenderType` overrides the shader anyway, making it a no-op at best and a GL state issue at worst
 - `CloudLayerPayload` was registered and consumed client-side but never built or sent by the server — `ClientCloudData` was permanently empty so the renderer skipped every tile; added `sendCloudData()` to `AtmosEngine`
 - `cloudiness` was always 0 on all cells because `PrecipitationModel` is not yet wired into the tick loop; `sendCloudData()` now derives a display value from `surfaceMoisture` (initialised at 0.5 → ~0.42 density) so clouds are visible immediately
 - Texture `cloud_noise.png` was in a misnamed flat folder (`assets.atmosforge.textures/`) instead of the correct resource pack path (`assets/atmosforge/textures/`), causing a failed-to-load-texture error at runtime
