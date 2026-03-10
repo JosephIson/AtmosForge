@@ -31,6 +31,9 @@ All notable changes to AtmosForge will be documented here.
 - `AtmoConfig`: constants for volumetric cloud geometry and all tornado lifecycle parameters
 
 ### Fixed
+- `AtmoNetwork` was annotated `@EventBusSubscriber` without `bus = Bus.MOD`, causing it to subscribe to the GAME bus instead of the MOD bus — `RegisterPayloadHandlersEvent` fires on the MOD bus, so all three payload types (`CloudLayerPayload`, `StormDataPayload`, `TornadoDataPayload`) were never registered; no atmospheric data ever reached the client, making clouds permanently invisible despite the rendering pipeline being correct
+
+### Fixed (previously)
 - Vanilla clouds rendered on top of and hid AtmosForge clouds — `AFTER_SKY` fires before `LevelRenderer.renderClouds()` so vanilla always drew last; now `CloudStatus.OFF` is set each frame so vanilla cloud rendering is a no-op and AtmosForge owns the cloud system entirely
 - `RenderType.entityTranslucent` triggers the entity shader pipeline which expects Sampler0 (texture), Sampler1 (overlay), and Sampler2 (lightmap) — cloud and tornado geometry only binds Sampler0, causing a shader warning and invisible rendering; all three renderers (`CloudLayerRenderer`, `StormCloudRenderer`, `TornadoRenderer`) now use `Tesselator` + `DefaultVertexFormat.POSITION_COLOR_TEX` + `getPositionColorTexShader` directly, bypassing the entity pipeline entirely
 - `MeshData.build()` null-guard added to all renderers to prevent drawing empty buffers

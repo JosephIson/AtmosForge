@@ -7,6 +7,7 @@ import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.neoforge.common.NeoForge;
 import org.joseph.atmosforge.core.TickHandler;
+import org.joseph.atmosforge.network.AtmoNetwork;
 import org.slf4j.Logger;
 
 @Mod(Atmosforge.MODID)
@@ -18,6 +19,9 @@ public class Atmosforge {
     public Atmosforge(IEventBus modEventBus, ModContainer modContainer) {
 
         LOGGER.info("AtmosForge initializing...");
+
+        // Register network payloads on the mod event bus
+        modEventBus.addListener(AtmoNetwork::register);
 
         // Register tick handler (core atmospheric brain)
         NeoForge.EVENT_BUS.register(new TickHandler());

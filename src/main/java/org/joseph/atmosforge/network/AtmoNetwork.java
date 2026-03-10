@@ -2,23 +2,18 @@ package org.joseph.atmosforge.network;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.server.level.ServerPlayer;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
-import org.joseph.atmosforge.Atmosforge;
 import org.joseph.atmosforge.client.ClientCloudData;
 import org.joseph.atmosforge.client.ClientStormData;
 import org.joseph.atmosforge.client.ClientTornadoData;
 
-@EventBusSubscriber(modid = Atmosforge.MODID)
 public final class AtmoNetwork {
 
     private static final String PROTOCOL = "1";
 
     private AtmoNetwork() {}
 
-    @SubscribeEvent
     public static void register(RegisterPayloadHandlersEvent event) {
 
         PayloadRegistrar registrar = event.registrar(PROTOCOL);
