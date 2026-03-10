@@ -3,8 +3,8 @@ package org.joseph.atmosforge.client.render;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import net.minecraft.client.CloudStatus;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.texture.OverlayTexture;
@@ -68,6 +68,13 @@ public final class CloudLayerRenderer {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null || mc.player == null) return;
 
+        // AtmosForge replaces vanilla cloud rendering entirely.
+        // Vanilla renderClouds() is called after AFTER_SKY fires, so without
+        // this it would draw on top of and hide our custom clouds.
+        if (mc.options.cloudStatus().get() != CloudStatus.OFF) {
+            mc.options.cloudStatus().set(CloudStatus.OFF);
+        }
+
         PoseStack ps = event.getPoseStack();
         Vec3 cam = event.getCamera().getPosition();
 
@@ -83,12 +90,10 @@ public final class CloudLayerRenderer {
         int minZ = pz - RADIUS_BLOCKS;
         int maxZ = pz + RADIUS_BLOCKS;
 
-        RenderSystem.setShader(GameRenderer::getPositionTexColorShader);
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
         RenderSystem.disableCull();
         RenderSystem.depthMask(false);
-        RenderSystem.setShaderTexture(0, TEX);
 
         MultiBufferSource.BufferSource buffers = mc.renderBuffers().bufferSource();
         VertexConsumer vc = buffers.getBuffer(RenderType.entityTranslucent(TEX));
