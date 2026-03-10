@@ -1,0 +1,132 @@
+package org.joseph.atmosforge.core;
+
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.Mth;
+import org.joseph.atmosforge.Config;
+import org.joseph.atmosforge.atmosphere.JetStream;
+import org.joseph.atmosforge.atmosphere.PressureCell;
+import org.joseph.atmosforge.atmosphere.WindVector;
+import org.joseph.atmosforge.data.ClimateGrid;
+import org.joseph.atmosforge.data.RegionPos;
+import org.joseph.atmosforge.network.AtmoNetwork;
+import org.joseph.atmosforge.network.CloudLayerPayload;
+import org.joseph.atmosforge.network.StormDataPayload;
+import org.joseph.atmosforge.storm.StormCell;
+import org.joseph.atmosforge.storm.StormCoreSystem;
+import org.joseph.atmosforge.storm.StormRegistry;
+
+import java.util.*;
+
+public class AtmosEngine {
+
+    private static final int REGION_SHIFT = 4;
+    private static final int STORM_SYNC_INTERVAL = 10;
+
+    private int stormSyncCounter = 0;
+
+    public void tick(ServerLevel level) {
+
+        WorldDataManager data = WorldDataManager.get(level);
+
+        ClimateGrid grid = data.getClimateGrid();
+        JetStream jetStream = data.getJetStream();
+        StormRegistry stormRegistry = data.getStormRegistry();
+        AtmosSavedData savedData = data.getSavedData(level);
+
+        int simulationRadius = Config.SIMULATION_RADIUS.get();
+        double thermalShift = 0.0;
+
+        Map<RegionPos, PressureCell> activeRegions = new HashMap<>();
+
+        for (ServerPlayer player : level.players()) {
+
+            int regionX = player.chunkPosition().x >> REGION_SHIFT;
+            int regionZ = player.chunkPosition().z >> REGION_SHIFT;
+
+            for (int dx = -simulationRadius; dx <= simulationRadius; dx++) {
+                for (int dz = -simulationRadius; dz <= simulationRadius; dz++) {
+
+                    RegionPos pos = new RegionPos(regionX + dx, regionZ + dz);
+                    PressureCell cell =
+                            grid.getOrCreateRegion(level, pos, thermalShift, savedData);
+
+                    activeRegions.put(pos, cell);
+                }
+            }
+        }
+
+        applyUpperJet(activeRegions, jetStream);
+        computeShearIndex(activeRegions);
+
+        StormCoreSystem.apply(activeRegions, stormRegistry);
+
+        stormSyncCounter++;
+        if (stormSyncCounter >= STORM_SYNC_INTERVAL) {
+            stormSyncCounter = 0;
+            sendStormData(level, stormRegistry, activeRegions);
+        }
+    }
+
+    private void applyUpperJet(Map<RegionPos, PressureCell> regions,
+                               JetStream jetStream) {
+
+        jetStream.tick();
+
+        for (Map.Entry<RegionPos, PressureCell> entry : regions.entrySet()) {
+
+            WindVector jet = jetStream.getJetVector(entry.getKey());
+            PressureCell cell = entry.getValue();
+
+            if (jet != null)
+                cell.setUpperWind(jet.getX(), jet.getZ());
+        }
+    }
+
+    private void computeShearIndex(Map<RegionPos, PressureCell> regions) {
+
+        for (PressureCell cell : regions.values()) {
+
+            double dx = cell.getUpperWind().getX()
+                    - cell.getSurfaceWind().getX();
+
+            double dz = cell.getUpperWind().getZ()
+                    - cell.getSurfaceWind().getZ();
+
+            cell.setShearIndex(Math.sqrt(dx * dx + dz * dz));
+        }
+    }
+
+    private void sendStormData(ServerLevel level,
+                               StormRegistry registry,
+                               Map<RegionPos, PressureCell> regions) {
+
+        ArrayList<StormDataPayload.Entry> list = new ArrayList<>();
+
+        for (Map.Entry<RegionPos, PressureCell> e : regions.entrySet()) {
+
+            StormCell storm = registry.get(e.getKey());
+            if (storm == null) continue;
+
+            float intensity = (float) storm.getIntensity();
+
+            list.add(new StormDataPayload.Entry(
+                    e.getKey().x(),
+                    e.getKey().z(),
+                    storm.getType().ordinal(),
+                    intensity,
+                    (float) e.getValue().getCloudiness(),
+                    (float) e.getValue().getShearIndex(),
+                    (float) e.getValue().getUpperWind().getX(),
+                    (float) e.getValue().getUpperWind().getZ()
+            ));
+        }
+
+        StormDataPayload payload = new StormDataPayload(list);
+
+        for (ServerPlayer player : level.players()) {
+            AtmoNetwork.sendTo(player, payload);
+        }
+    }
+}
+
