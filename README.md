@@ -1,6 +1,6 @@
 # AtmosForge
 
-A NeoForge mod for Minecraft 1.21.1 that simulates a physically-based atmospheric system, bringing realistic weather dynamics to your world.
+AtmosForge brings the most realistic weather simulation possible to Minecraft. Powered by physically-based atmospheric models including pressure cells, jet streams, Coriolis forcing, frontal systems, cyclone lifecycles, and convective storm classification — every region of your world experiences dynamic, evolving weather driven by real atmospheric science.
 
 ## Features
 
