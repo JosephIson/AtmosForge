@@ -31,6 +31,7 @@ All notable changes to AtmosForge will be documented here.
 - `AtmoConfig`: constants for volumetric cloud geometry and all tornado lifecycle parameters
 
 ### Fixed
+- Atmospheric sync payloads were broadcast globally to every player using the union of all active simulation regions, which leaked remote weather and tornado events across the map and wasted bandwidth/CPU; payload assembly is now per-player and filtered to that player's simulation-radius region window
 - `AtmoNetwork` was annotated `@EventBusSubscriber` without `bus = Bus.MOD`, causing it to subscribe to the GAME bus instead of the MOD bus — `RegisterPayloadHandlersEvent` fires on the MOD bus, so all three payload types (`CloudLayerPayload`, `StormDataPayload`, `TornadoDataPayload`) were never registered; no atmospheric data ever reached the client, making clouds permanently invisible despite the rendering pipeline being correct
 
 ### Fixed (previously)
