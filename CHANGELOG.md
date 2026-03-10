@@ -21,8 +21,19 @@ All notable changes to AtmosForge will be documented here.
 - Server→client network sync for cloud and storm data
 - Climate grid with per-region state persistence via SavedData
 
+- Volumetric cloud deck: `CloudLayerRenderer` now renders 7 stacked horizontal slabs with a bell-curve alpha profile, giving the cloud layer genuine depth instead of a flat painted ceiling
+- Per-layer UV offset in volumetric clouds breaks texture repetition when looking up through the cloud mass
+- Storm-aware cloud rendering: SUPERCELL, MCS, and THUNDERSTORM regions lower the cloud base and thicken/darken the deck proportional to storm intensity
+- `TornadoCell`: data class tracking world position, intensity (0–1), lifecycle stage, and parent supercell region
+- `TornadoRegistry`: per-world list of active tornado vortices
+- `TornadoLifecycleModel`: spawns tornadoes from supercells exceeding shear/instability/updraft thresholds; advances FORMING → MATURE → DISSIPATING; drifts with parent surface wind
+- `TornadoDataPayload` + `ClientTornadoData`: server→client sync pipeline for tornado state
+- `TornadoRenderer`: twisted funnel cone (14 rings × 24 angular segments) with client-side rotation, colour grading grey→brown toward the tip, and a swirling debris disk at the funnel base
+- `AtmoConfig`: constants for volumetric cloud geometry and all tornado lifecycle parameters
+
 ### Fixed
 - Division-by-zero in `UpperLevelDynamics` when upper wind magnitude is zero
 - Key collision bug in `ClientCloudData` and `ClientStormData` (XOR replaced with OR for 64-bit region key packing)
 - Dead code guard branches in `StormCoreSystem` smoothing (conditions were always false against a compile-time constant)
 - Removed debug `System.out.println` in `AtmosEngine` that spammed the server log every 10 ticks
+- Texture `cloud_noise.png` was in a misnamed flat folder (`assets.atmosforge.textures/`) instead of the correct resource pack path (`assets/atmosforge/textures/`), causing a failed-to-load-texture error at runtime
