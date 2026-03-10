@@ -25,6 +25,7 @@ import java.util.*;
 public class AtmosEngine {
 
     private static final int REGION_SHIFT = 4;
+    private static final int BLOCKS_PER_REGION = 16 << REGION_SHIFT;
     private static final int STORM_SYNC_INTERVAL = 10;
 
     private int stormSyncCounter = 0;
@@ -70,9 +71,9 @@ public class AtmosEngine {
         stormSyncCounter++;
         if (stormSyncCounter >= STORM_SYNC_INTERVAL) {
             stormSyncCounter = 0;
-            sendCloudData(level, activeRegions);
-            sendStormData(level, stormRegistry, activeRegions);
-            sendTornadoData(level, tornadoRegistry);
+            sendCloudData(level, activeRegions, simulationRadius);
+            sendStormData(level, stormRegistry, activeRegions, simulationRadius);
+            sendTornadoData(level, tornadoRegistry, simulationRadius);
         }
     }
 
@@ -106,88 +107,117 @@ public class AtmosEngine {
     }
 
     private void sendCloudData(ServerLevel level,
-                               Map<RegionPos, PressureCell> regions) {
+                               Map<RegionPos, PressureCell> regions,
+                               int simulationRadius) {
 
-        ArrayList<CloudLayerPayload.Entry> list = new ArrayList<>();
-
-        for (Map.Entry<RegionPos, PressureCell> e : regions.entrySet()) {
-            PressureCell cell = e.getValue();
-
-            // PrecipitationModel sets cloudiness, but even without the full
-            // physics pipeline running we can derive a display value from
-            // surface moisture so clouds are always visible.
-            float cloudiness = (float) Math.max(
-                    cell.getCloudiness(),
-                    cell.getSurfaceMoisture() * 0.6);
-
-            // baseDensity gives the cloud layer its base opacity.
-            // Moisture of 0.5 (the initialised default) maps to 0.42,
-            // giving a modest visible cloud cover right away.
-            float baseDensity = (float) Math.max(0.15, cell.getSurfaceMoisture() * 0.85);
-
-            list.add(new CloudLayerPayload.Entry(
-                    e.getKey().x(),
-                    e.getKey().z(),
-                    Mth.clamp(cloudiness, 0f, 1f),
-                    Mth.clamp(baseDensity, 0f, 1f)
-            ));
-        }
-
-        CloudLayerPayload payload = new CloudLayerPayload(list, level.getGameTime());
         for (ServerPlayer player : level.players()) {
-            AtmoNetwork.sendTo(player, payload);
+            int playerRegionX = player.chunkPosition().x >> REGION_SHIFT;
+            int playerRegionZ = player.chunkPosition().z >> REGION_SHIFT;
+
+            ArrayList<CloudLayerPayload.Entry> list = new ArrayList<>();
+            for (Map.Entry<RegionPos, PressureCell> e : regions.entrySet()) {
+                RegionPos pos = e.getKey();
+                if (!isWithinRegionRange(pos.x(), pos.z(), playerRegionX, playerRegionZ, simulationRadius)) {
+                    continue;
+                }
+
+                PressureCell cell = e.getValue();
+
+                // PrecipitationModel sets cloudiness, but even without the full
+                // physics pipeline running we can derive a display value from
+                // surface moisture so clouds are always visible.
+                float cloudiness = (float) Math.max(
+                        cell.getCloudiness(),
+                        cell.getSurfaceMoisture() * 0.6);
+
+                // baseDensity gives the cloud layer its base opacity.
+                // Moisture of 0.5 (the initialised default) maps to 0.42,
+                // giving a modest visible cloud cover right away.
+                float baseDensity = (float) Math.max(0.15, cell.getSurfaceMoisture() * 0.85);
+
+                list.add(new CloudLayerPayload.Entry(
+                        pos.x(),
+                        pos.z(),
+                        Mth.clamp(cloudiness, 0f, 1f),
+                        Mth.clamp(baseDensity, 0f, 1f)
+                ));
+            }
+
+            AtmoNetwork.sendTo(player, new CloudLayerPayload(list, level.getGameTime()));
         }
     }
 
-    private void sendTornadoData(ServerLevel level, TornadoRegistry registry) {
+    private void sendTornadoData(ServerLevel level,
+                                 TornadoRegistry registry,
+                                 int simulationRadius) {
 
-        ArrayList<TornadoDataPayload.Entry> list = new ArrayList<>();
-
-        for (TornadoCell t : registry.getAll()) {
-            list.add(new TornadoDataPayload.Entry(
-                    (float) t.getWorldX(),
-                    (float) t.getWorldZ(),
-                    (float) t.getIntensity(),
-                    (byte) t.getStage().ordinal()
-            ));
-        }
-
-        TornadoDataPayload payload = new TornadoDataPayload(list);
         for (ServerPlayer player : level.players()) {
-            AtmoNetwork.sendTo(player, payload);
+            int playerRegionX = player.chunkPosition().x >> REGION_SHIFT;
+            int playerRegionZ = player.chunkPosition().z >> REGION_SHIFT;
+
+            ArrayList<TornadoDataPayload.Entry> list = new ArrayList<>();
+            for (TornadoCell t : registry.getAll()) {
+                int tornadoRegionX = (int) Math.floor(t.getWorldX() / BLOCKS_PER_REGION);
+                int tornadoRegionZ = (int) Math.floor(t.getWorldZ() / BLOCKS_PER_REGION);
+                if (!isWithinRegionRange(tornadoRegionX, tornadoRegionZ, playerRegionX, playerRegionZ, simulationRadius)) {
+                    continue;
+                }
+
+                list.add(new TornadoDataPayload.Entry(
+                        (float) t.getWorldX(),
+                        (float) t.getWorldZ(),
+                        (float) t.getIntensity(),
+                        (byte) t.getStage().ordinal()
+                ));
+            }
+
+            AtmoNetwork.sendTo(player, new TornadoDataPayload(list));
         }
     }
 
     private void sendStormData(ServerLevel level,
                                StormRegistry registry,
-                               Map<RegionPos, PressureCell> regions) {
-
-        ArrayList<StormDataPayload.Entry> list = new ArrayList<>();
-
-        for (Map.Entry<RegionPos, PressureCell> e : regions.entrySet()) {
-
-            StormCell storm = registry.get(e.getKey());
-            if (storm == null) continue;
-
-            float intensity = (float) storm.getIntensity();
-
-            list.add(new StormDataPayload.Entry(
-                    e.getKey().x(),
-                    e.getKey().z(),
-                    storm.getType().ordinal(),
-                    intensity,
-                    (float) e.getValue().getCloudiness(),
-                    (float) e.getValue().getShearIndex(),
-                    (float) e.getValue().getUpperWind().getX(),
-                    (float) e.getValue().getUpperWind().getZ()
-            ));
-        }
-
-        StormDataPayload payload = new StormDataPayload(list);
+                               Map<RegionPos, PressureCell> regions,
+                               int simulationRadius) {
 
         for (ServerPlayer player : level.players()) {
-            AtmoNetwork.sendTo(player, payload);
+            int playerRegionX = player.chunkPosition().x >> REGION_SHIFT;
+            int playerRegionZ = player.chunkPosition().z >> REGION_SHIFT;
+
+            ArrayList<StormDataPayload.Entry> list = new ArrayList<>();
+            for (Map.Entry<RegionPos, PressureCell> e : regions.entrySet()) {
+                RegionPos pos = e.getKey();
+                if (!isWithinRegionRange(pos.x(), pos.z(), playerRegionX, playerRegionZ, simulationRadius)) {
+                    continue;
+                }
+
+                StormCell storm = registry.get(pos);
+                if (storm == null) continue;
+
+                float intensity = (float) storm.getIntensity();
+
+                list.add(new StormDataPayload.Entry(
+                        pos.x(),
+                        pos.z(),
+                        storm.getType().ordinal(),
+                        intensity,
+                        (float) e.getValue().getCloudiness(),
+                        (float) e.getValue().getShearIndex(),
+                        (float) e.getValue().getUpperWind().getX(),
+                        (float) e.getValue().getUpperWind().getZ()
+                ));
+            }
+
+            AtmoNetwork.sendTo(player, new StormDataPayload(list));
         }
     }
-}
 
+    private boolean isWithinRegionRange(int regionX,
+                                        int regionZ,
+                                        int centerRegionX,
+                                        int centerRegionZ,
+                                        int range) {
+        return Math.abs(regionX - centerRegionX) <= range
+                && Math.abs(regionZ - centerRegionZ) <= range;
+    }
+}
