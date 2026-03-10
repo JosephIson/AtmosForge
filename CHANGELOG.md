@@ -32,6 +32,8 @@ All notable changes to AtmosForge will be documented here.
 
 ### Fixed
 - Vanilla clouds rendered on top of and hid AtmosForge clouds — `AFTER_SKY` fires before `LevelRenderer.renderClouds()` so vanilla always drew last; now `CloudStatus.OFF` is set each frame so vanilla cloud rendering is a no-op and AtmosForge owns the cloud system entirely
+- `RenderType.entityTranslucent` triggers the entity shader pipeline which expects Sampler0 (texture), Sampler1 (overlay), and Sampler2 (lightmap) — cloud and tornado geometry only binds Sampler0, causing a shader warning and invisible rendering; all three renderers (`CloudLayerRenderer`, `StormCloudRenderer`, `TornadoRenderer`) now use `Tesselator` + `DefaultVertexFormat.POSITION_COLOR_TEX` + `getPositionColorTexShader` directly, bypassing the entity pipeline entirely
+- `MeshData.build()` null-guard added to all renderers to prevent drawing empty buffers
 - Removed conflicting `RenderSystem.setShader(getPositionTexColorShader)` call before the `entityTranslucent` buffer — the `RenderType` overrides the shader anyway, making it a no-op at best and a GL state issue at worst
 - `CloudLayerPayload` was registered and consumed client-side but never built or sent by the server — `ClientCloudData` was permanently empty so the renderer skipped every tile; added `sendCloudData()` to `AtmosEngine`
 - `cloudiness` was always 0 on all cells because `PrecipitationModel` is not yet wired into the tick loop; `sendCloudData()` now derives a display value from `surfaceMoisture` (initialised at 0.5 → ~0.42 density) so clouds are visible immediately
