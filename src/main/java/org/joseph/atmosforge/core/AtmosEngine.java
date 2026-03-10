@@ -70,6 +70,7 @@ public class AtmosEngine {
         stormSyncCounter++;
         if (stormSyncCounter >= STORM_SYNC_INTERVAL) {
             stormSyncCounter = 0;
+            sendCloudData(level, activeRegions);
             sendStormData(level, stormRegistry, activeRegions);
             sendTornadoData(level, tornadoRegistry);
         }
@@ -101,6 +102,40 @@ public class AtmosEngine {
                     - cell.getSurfaceWind().getZ();
 
             cell.setShearIndex(Math.sqrt(dx * dx + dz * dz));
+        }
+    }
+
+    private void sendCloudData(ServerLevel level,
+                               Map<RegionPos, PressureCell> regions) {
+
+        ArrayList<CloudLayerPayload.Entry> list = new ArrayList<>();
+
+        for (Map.Entry<RegionPos, PressureCell> e : regions.entrySet()) {
+            PressureCell cell = e.getValue();
+
+            // PrecipitationModel sets cloudiness, but even without the full
+            // physics pipeline running we can derive a display value from
+            // surface moisture so clouds are always visible.
+            float cloudiness = (float) Math.max(
+                    cell.getCloudiness(),
+                    cell.getSurfaceMoisture() * 0.6);
+
+            // baseDensity gives the cloud layer its base opacity.
+            // Moisture of 0.5 (the initialised default) maps to 0.42,
+            // giving a modest visible cloud cover right away.
+            float baseDensity = (float) Math.max(0.15, cell.getSurfaceMoisture() * 0.85);
+
+            list.add(new CloudLayerPayload.Entry(
+                    e.getKey().x(),
+                    e.getKey().z(),
+                    Mth.clamp(cloudiness, 0f, 1f),
+                    Mth.clamp(baseDensity, 0f, 1f)
+            ));
+        }
+
+        CloudLayerPayload payload = new CloudLayerPayload(list, level.getGameTime());
+        for (ServerPlayer player : level.players()) {
+            AtmoNetwork.sendTo(player, payload);
         }
     }
 
