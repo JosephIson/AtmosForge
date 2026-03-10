@@ -14,3 +14,6 @@ run/
 
 # Generated resources
 src/generated/resources/
+
+# Claude Code
+.claude/

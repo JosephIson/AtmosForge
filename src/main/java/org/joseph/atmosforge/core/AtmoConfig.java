@@ -99,5 +99,49 @@ public final class AtmoConfig {
 
     public static final double SYNOPTIC_STORM_THRESHOLD = 0.45;
 
+    // ------------------------
+    // Volumetric cloud rendering
+    // ------------------------
+
+    /** Y level of the bottom of the cloud deck (blocks). */
+    public static final int CLOUD_BASE_Y = 148;
+
+    /** Total vertical thickness of the cloud deck (blocks). */
+    public static final int CLOUD_DEPTH = 28;
+
+    /** Number of horizontal slabs rendered per tile to create depth. */
+    public static final int CLOUD_NUM_LAYERS = 7;
+
+    // ------------------------
+    // Tornado lifecycle
+    // ------------------------
+
+    /** Probability per simulation tick that an eligible supercell spawns a tornado. */
+    public static final double TORNADO_SPAWN_CHANCE = 0.0008;
+
+    /** Minimum normalised shear (shearIndex / SHEAR_NORM) required to spawn. */
+    public static final double TORNADO_SHEAR_MIN = 0.65;
+
+    /** Minimum normalised instability required to spawn. */
+    public static final double TORNADO_INSTABILITY_MIN = 0.55;
+
+    /** Minimum updraft index required to spawn. */
+    public static final double TORNADO_UPDRAFT_MIN = 0.45;
+
+    /** Supercell must be at least this many simulation ticks old before it can spawn a tornado. */
+    public static final int TORNADO_MIN_SUPERCELL_AGE = 200;
+
+    /** Ticks spent in FORMING stage (intensity ramps 0 → 1). */
+    public static final int TORNADO_FORMING_TICKS = 80;
+
+    /** Ticks spent in MATURE stage at full intensity before entering DISSIPATING. */
+    public static final int TORNADO_MATURE_TICKS = 400;
+
+    /** Intensity lost per simulation tick during DISSIPATING. */
+    public static final double TORNADO_DISSIPATE_RATE = 0.008;
+
+    /** Blocks drifted per simulation tick with the parent supercell surface wind. */
+    public static final double TORNADO_DRIFT_SPEED = 0.4;
+
     private AtmoConfig() {}
 }

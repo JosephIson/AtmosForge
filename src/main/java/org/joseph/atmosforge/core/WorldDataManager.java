@@ -7,6 +7,7 @@ import org.joseph.atmosforge.atmosphere.JetStream;
 import org.joseph.atmosforge.atmosphere.SeasonModel;
 import org.joseph.atmosforge.data.ClimateGrid;
 import org.joseph.atmosforge.storm.StormRegistry;
+import org.joseph.atmosforge.storm.TornadoRegistry;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -19,12 +20,14 @@ public final class WorldDataManager {
     private final JetStream jetStream;
     private final SeasonModel seasonModel;
     private final StormRegistry stormRegistry;
+    private final TornadoRegistry tornadoRegistry;
 
     private WorldDataManager() {
         this.climateGrid = new ClimateGrid();
         this.jetStream = new JetStream();
         this.seasonModel = new SeasonModel();
         this.stormRegistry = new StormRegistry();
+        this.tornadoRegistry = new TornadoRegistry();
     }
 
     public static WorldDataManager get(ServerLevel level) {
@@ -45,6 +48,10 @@ public final class WorldDataManager {
 
     public StormRegistry getStormRegistry() {
         return stormRegistry;
+    }
+
+    public TornadoRegistry getTornadoRegistry() {
+        return tornadoRegistry;
     }
 
     public AtmosSavedData getSavedData(ServerLevel level) {

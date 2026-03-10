@@ -9,6 +9,7 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import org.joseph.atmosforge.Atmosforge;
 import org.joseph.atmosforge.client.ClientCloudData;
 import org.joseph.atmosforge.client.ClientStormData;
+import org.joseph.atmosforge.client.ClientTornadoData;
 
 @EventBusSubscriber(modid = Atmosforge.MODID)
 public final class AtmoNetwork {
@@ -39,6 +40,15 @@ public final class AtmoNetwork {
                     ClientCloudData.accept(payload);
                 }
         );
+
+        registrar.playToClient(
+                TornadoDataPayload.TYPE,
+                TornadoDataPayload.STREAM_CODEC,
+                (payload, context) -> {
+                    if (Minecraft.getInstance().level == null) return;
+                    ClientTornadoData.accept(payload);
+                }
+        );
     }
 
     public static void sendTo(ServerPlayer player, StormDataPayload payload) {
@@ -46,6 +56,10 @@ public final class AtmoNetwork {
     }
 
     public static void sendTo(ServerPlayer player, CloudLayerPayload payload) {
+        player.connection.send(payload);
+    }
+
+    public static void sendTo(ServerPlayer player, TornadoDataPayload payload) {
         player.connection.send(payload);
     }
 }

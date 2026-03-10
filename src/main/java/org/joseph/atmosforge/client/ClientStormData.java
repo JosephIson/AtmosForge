@@ -49,6 +49,10 @@ public final class ClientStormData {
         return STORMS;
     }
 
+    public static StormSample get(int rx, int rz) {
+        return STORMS.get(key(rx, rz));
+    }
+
     private static long key(int x, int z) {
         return (((long) x) << 32) | (z & 0xffffffffL);
     }

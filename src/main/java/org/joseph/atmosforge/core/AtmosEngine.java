@@ -12,9 +12,13 @@ import org.joseph.atmosforge.data.RegionPos;
 import org.joseph.atmosforge.network.AtmoNetwork;
 import org.joseph.atmosforge.network.CloudLayerPayload;
 import org.joseph.atmosforge.network.StormDataPayload;
+import org.joseph.atmosforge.network.TornadoDataPayload;
 import org.joseph.atmosforge.storm.StormCell;
 import org.joseph.atmosforge.storm.StormCoreSystem;
 import org.joseph.atmosforge.storm.StormRegistry;
+import org.joseph.atmosforge.storm.TornadoCell;
+import org.joseph.atmosforge.storm.TornadoLifecycleModel;
+import org.joseph.atmosforge.storm.TornadoRegistry;
 
 import java.util.*;
 
@@ -32,6 +36,7 @@ public class AtmosEngine {
         ClimateGrid grid = data.getClimateGrid();
         JetStream jetStream = data.getJetStream();
         StormRegistry stormRegistry = data.getStormRegistry();
+        TornadoRegistry tornadoRegistry = data.getTornadoRegistry();
         AtmosSavedData savedData = data.getSavedData(level);
 
         int simulationRadius = Config.SIMULATION_RADIUS.get();
@@ -60,11 +65,13 @@ public class AtmosEngine {
         computeShearIndex(activeRegions);
 
         StormCoreSystem.apply(activeRegions, stormRegistry);
+        TornadoLifecycleModel.apply(activeRegions, stormRegistry, tornadoRegistry);
 
         stormSyncCounter++;
         if (stormSyncCounter >= STORM_SYNC_INTERVAL) {
             stormSyncCounter = 0;
             sendStormData(level, stormRegistry, activeRegions);
+            sendTornadoData(level, tornadoRegistry);
         }
     }
 
@@ -94,6 +101,25 @@ public class AtmosEngine {
                     - cell.getSurfaceWind().getZ();
 
             cell.setShearIndex(Math.sqrt(dx * dx + dz * dz));
+        }
+    }
+
+    private void sendTornadoData(ServerLevel level, TornadoRegistry registry) {
+
+        ArrayList<TornadoDataPayload.Entry> list = new ArrayList<>();
+
+        for (TornadoCell t : registry.getAll()) {
+            list.add(new TornadoDataPayload.Entry(
+                    (float) t.getWorldX(),
+                    (float) t.getWorldZ(),
+                    (float) t.getIntensity(),
+                    (byte) t.getStage().ordinal()
+            ));
+        }
+
+        TornadoDataPayload payload = new TornadoDataPayload(list);
+        for (ServerPlayer player : level.players()) {
+            AtmoNetwork.sendTo(player, payload);
         }
     }
 
