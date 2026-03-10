@@ -32,7 +32,7 @@ import org.joseph.atmosforge.core.AtmoConfig;
  * combined result looks like a 3D cloud mass rather than a painted ceiling.
  * Each layer uses a slightly shifted UV to break texture repetition with depth.
  *
- * Uses Tesselator + POSITION_COLOR_TEX directly — bypassing the entity render
+ * Uses Tesselator + POSITION_TEX_COLOR directly — bypassing the entity render
  * type pipeline which requires entity-specific samplers (overlay, lightmap)
  * that cloud geometry does not provide.
  *
@@ -86,7 +86,7 @@ public final class CloudLayerRenderer {
         float driftV = t * 0.08f;
 
         // Set up simple position-colour-tex shader — no entity samplers needed
-        RenderSystem.setShader(GameRenderer::getPositionColorTexShader);
+        RenderSystem.setShader(GameRenderer::getPositionTexColorShader);
         RenderSystem.setShaderTexture(0, TEX);
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
@@ -99,7 +99,7 @@ public final class CloudLayerRenderer {
         Matrix4f mat = ps.last().pose();
 
         Tesselator tess = Tesselator.getInstance();
-        BufferBuilder buf = tess.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR_TEX);
+        BufferBuilder buf = tess.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
 
         for (int x = (minX / TILE) * TILE; x <= maxX; x += TILE) {
             for (int z = (minZ / TILE) * TILE; z <= maxZ; z += TILE) {
@@ -150,10 +150,10 @@ public final class CloudLayerRenderer {
                     float u1 = (x + TILE)   / 512f + driftU + uvBias;
                     float v1 = (z + TILE)   / 512f + driftV + uvBias;
 
-                    buf.addVertex(mat, x,        y, z       ).setColor(fr, fg, fb, alpha).setUv(u0, v0);
-                    buf.addVertex(mat, x + TILE, y, z       ).setColor(fr, fg, fb, alpha).setUv(u1, v0);
-                    buf.addVertex(mat, x + TILE, y, z + TILE).setColor(fr, fg, fb, alpha).setUv(u1, v1);
-                    buf.addVertex(mat, x,        y, z + TILE).setColor(fr, fg, fb, alpha).setUv(u0, v1);
+                    buf.addVertex(mat, x,        y, z       ).setUv(u0, v0).setColor(fr, fg, fb, alpha);
+                    buf.addVertex(mat, x + TILE, y, z       ).setUv(u1, v0).setColor(fr, fg, fb, alpha);
+                    buf.addVertex(mat, x + TILE, y, z + TILE).setUv(u1, v1).setColor(fr, fg, fb, alpha);
+                    buf.addVertex(mat, x,        y, z + TILE).setUv(u0, v1).setColor(fr, fg, fb, alpha);
                 }
             }
         }

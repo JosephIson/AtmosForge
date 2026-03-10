@@ -63,7 +63,7 @@ public final class TornadoRenderer {
                 + event.getPartialTick().getGameTimeDeltaPartialTick(true);
         float masterSpin = gameTime * SPIN_SPEED;
 
-        RenderSystem.setShader(GameRenderer::getPositionColorTexShader);
+        RenderSystem.setShader(GameRenderer::getPositionTexColorShader);
         RenderSystem.setShaderTexture(0, TEX);
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
@@ -76,7 +76,7 @@ public final class TornadoRenderer {
         Matrix4f mat = ps.last().pose();
 
         Tesselator tess = Tesselator.getInstance();
-        BufferBuilder buf = tess.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR_TEX);
+        BufferBuilder buf = tess.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
 
         for (TornadoSample s : samples) {
             if (s.intensity() < 0.02f) continue;
@@ -147,10 +147,10 @@ public final class TornadoRenderer {
                 float u0 = (float) seg       / ANGLE_SEGS;
                 float u1 = (float) (seg + 1) / ANGLE_SEGS;
 
-                buf.addVertex(mat, ax,  y0, az ).setColor(fr0, fg0, fb0, alpha).setUv(u0, t0);
-                buf.addVertex(mat, bx,  y0, bz ).setColor(fr0, fg0, fb0, alpha).setUv(u1, t0);
-                buf.addVertex(mat, cx2, y1, cz2).setColor(fr1, fg1, fb1, alpha).setUv(u1, t1);
-                buf.addVertex(mat, dx2, y1, dz2).setColor(fr1, fg1, fb1, alpha).setUv(u0, t1);
+                buf.addVertex(mat, ax,  y0, az ).setUv(u0, t0).setColor(fr0, fg0, fb0, alpha);
+                buf.addVertex(mat, bx,  y0, bz ).setUv(u1, t0).setColor(fr0, fg0, fb0, alpha);
+                buf.addVertex(mat, cx2, y1, cz2).setUv(u1, t1).setColor(fr1, fg1, fb1, alpha);
+                buf.addVertex(mat, dx2, y1, dz2).setUv(u0, t1).setColor(fr1, fg1, fb1, alpha);
             }
         }
 
@@ -166,10 +166,10 @@ public final class TornadoRenderer {
                 float a0 = (float) (2 * Math.PI * i       / segs) + spin;
                 float a1 = (float) (2 * Math.PI * (i + 1) / segs) + spin;
 
-                buf.addVertex(mat, cx + Mth.cos(a0) * innerR, bottomY, cz + Mth.sin(a0) * innerR).setColor(90/255f, 70/255f, 60/255f, alpha).setUv(0, 0);
-                buf.addVertex(mat, cx + Mth.cos(a0) * debrisR, bottomY, cz + Mth.sin(a0) * debrisR).setColor(90/255f, 70/255f, 60/255f, alpha).setUv(1, 0);
-                buf.addVertex(mat, cx + Mth.cos(a1) * debrisR, bottomY, cz + Mth.sin(a1) * debrisR).setColor(90/255f, 70/255f, 60/255f, alpha).setUv(1, 1);
-                buf.addVertex(mat, cx + Mth.cos(a1) * innerR, bottomY, cz + Mth.sin(a1) * innerR).setColor(90/255f, 70/255f, 60/255f, alpha).setUv(0, 1);
+                buf.addVertex(mat, cx + Mth.cos(a0) * innerR, bottomY, cz + Mth.sin(a0) * innerR).setUv(0, 0).setColor(90/255f, 70/255f, 60/255f, alpha);
+                buf.addVertex(mat, cx + Mth.cos(a0) * debrisR, bottomY, cz + Mth.sin(a0) * debrisR).setUv(1, 0).setColor(90/255f, 70/255f, 60/255f, alpha);
+                buf.addVertex(mat, cx + Mth.cos(a1) * debrisR, bottomY, cz + Mth.sin(a1) * debrisR).setUv(1, 1).setColor(90/255f, 70/255f, 60/255f, alpha);
+                buf.addVertex(mat, cx + Mth.cos(a1) * innerR, bottomY, cz + Mth.sin(a1) * innerR).setUv(0, 1).setColor(90/255f, 70/255f, 60/255f, alpha);
             }
         }
     }

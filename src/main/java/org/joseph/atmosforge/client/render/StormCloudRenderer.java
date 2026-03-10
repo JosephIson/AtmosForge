@@ -42,7 +42,7 @@ public final class StormCloudRenderer {
 
         Vec3 cam = event.getCamera().getPosition();
 
-        RenderSystem.setShader(GameRenderer::getPositionColorTexShader);
+        RenderSystem.setShader(GameRenderer::getPositionTexColorShader);
         RenderSystem.setShaderTexture(0, TEX);
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
@@ -55,7 +55,7 @@ public final class StormCloudRenderer {
         Matrix4f mat = ps.last().pose();
 
         Tesselator tess = Tesselator.getInstance();
-        BufferBuilder buf = tess.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR_TEX);
+        BufferBuilder buf = tess.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
 
         for (ClientStormData.StormSample s : ClientStormData.getAll().values()) {
 
@@ -134,10 +134,10 @@ public final class StormCloudRenderer {
                 float tz = cz + layerTiltZ;
 
                 // bottom-left, bottom-right, top-right, top-left of strip
-                buf.addVertex(mat, x0,             y0, z0            ).setColor(fr, fg, fb, alpha).setUv(0, 0);
-                buf.addVertex(mat, x1,             y0, z1            ).setColor(fr, fg, fb, alpha).setUv(1, 0);
-                buf.addVertex(mat, tx+(x1-cx), y1, tz+(z1-cz)).setColor(fr, fg, fb, alpha).setUv(1, 1);
-                buf.addVertex(mat, tx+(x0-cx), y1, tz+(z0-cz)).setColor(fr, fg, fb, alpha).setUv(0, 1);
+                buf.addVertex(mat, x0,             y0, z0            ).setUv(0, 0).setColor(fr, fg, fb, alpha);
+                buf.addVertex(mat, x1,             y0, z1            ).setUv(1, 0).setColor(fr, fg, fb, alpha);
+                buf.addVertex(mat, tx+(x1-cx), y1, tz+(z1-cz)).setUv(1, 1).setColor(fr, fg, fb, alpha);
+                buf.addVertex(mat, tx+(x0-cx), y1, tz+(z0-cz)).setUv(0, 1).setColor(fr, fg, fb, alpha);
             }
         }
     }
