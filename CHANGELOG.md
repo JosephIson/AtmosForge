@@ -20,7 +20,6 @@ All notable changes to AtmosForge will be documented here.
 - Storm cloud renderer driven by storm type and intensity
 - Server→client network sync for cloud and storm data
 - Climate grid with per-region state persistence via SavedData
-
 - Volumetric cloud deck: `CloudLayerRenderer` now renders 7 stacked horizontal slabs with a bell-curve alpha profile, giving the cloud layer genuine depth instead of a flat painted ceiling
 - Per-layer UV offset in volumetric clouds breaks texture repetition when looking up through the cloud mass
 - Storm-aware cloud rendering: SUPERCELL, MCS, and THUNDERSTORM regions lower the cloud base and thicken/darken the deck proportional to storm intensity
@@ -32,8 +31,10 @@ All notable changes to AtmosForge will be documented here.
 - `AtmoConfig`: constants for volumetric cloud geometry and all tornado lifecycle parameters
 
 ### Fixed
+- `CloudLayerPayload` was registered and consumed client-side but never built or sent by the server — `ClientCloudData` was permanently empty so the renderer skipped every tile; added `sendCloudData()` to `AtmosEngine`
+- `cloudiness` was always 0 on all cells because `PrecipitationModel` is not yet wired into the tick loop; `sendCloudData()` now derives a display value from `surfaceMoisture` (initialised at 0.5 → ~0.42 density) so clouds are visible immediately
+- Texture `cloud_noise.png` was in a misnamed flat folder (`assets.atmosforge.textures/`) instead of the correct resource pack path (`assets/atmosforge/textures/`), causing a failed-to-load-texture error at runtime
 - Division-by-zero in `UpperLevelDynamics` when upper wind magnitude is zero
 - Key collision bug in `ClientCloudData` and `ClientStormData` (XOR replaced with OR for 64-bit region key packing)
 - Dead code guard branches in `StormCoreSystem` smoothing (conditions were always false against a compile-time constant)
 - Removed debug `System.out.println` in `AtmosEngine` that spammed the server log every 10 ticks
-- Texture `cloud_noise.png` was in a misnamed flat folder (`assets.atmosforge.textures/`) instead of the correct resource pack path (`assets/atmosforge/textures/`), causing a failed-to-load-texture error at runtime
